@@ -28,16 +28,29 @@
             <line-chart :chart-data="dataSetWithJobCountInQueue" :options="optionForJobCountInQueue"
                         :height="500"></line-chart>
         </div>
-        <br class="row">
-            <div> completed_jobs: {{ completed_jobs }}</div></br>
-            <div> failed_jobs: {{ failed_jobs }}</div></br>
-            <div> jobCountInQueue: {{ jobCountInQueue }}</div></br>
-            <div> recent_failed_jobs: {{ recent_failed_jobs }}</div></br>
-            <div> recent_jobs: {{ recent_jobs }}</div></br>
-            <div> time: {{ time }}</div></br>
-            <div> timeStr: {{ timeStr }}</div>
+        <h4>BackLog</h4>
+        <div class="table-responsive m-l-10 m-r-10 m-b-25">
+            <table class="table pa-table pa-table-hover no-wrap table-bordered">
+                <tr>
+                    <th>completed_jobs</th>
+                    <th>failed_jobs</th>
+                    <th>jobCountInQueue</th>
+                    <th>recent_failed_jobs</th>
+                    <th>recent_jobs</th>
+                    <th>time</th>
+                    <th>timeStr</th>
+                </tr>
+                <tr v-for="values in backLog">
+                    <td>{{ values.completed_jobs }}</td>
+                    <td>{{ values.failed_jobs }}</td>
+                    <td>{{ values.jobCountInQueue }}</td>
+                    <td>{{ values.recent_failed_jobs }}</td>
+                    <td>{{ values.recent_jobs }}</td>
+                    <td>{{ values.time }}</td>
+                    <td>{{ values.timeStr }}</td>
+                </tr>
+            </table>
         </div>
-    </div>
     </div>
 </template>
 
@@ -45,10 +58,11 @@
 
 import {mapState, mapActions} from "vuex";
 import LineChart from "@/components/system/redisMon/LineChart";
+import Table from "@/components/UIElements/Table";
 
 export default {
     name: 'RedisCharts',
-    components: {LineChart},
+    components: {Table, LineChart},
     data() {
         return {
             dataSetWithJobCountInQueue: {
@@ -70,7 +84,10 @@ export default {
             recent_failed_jobs: 0,
             recent_jobs: 0,
             time: 0,
-            timeStr: ""
+            timeStr: "",
+            maxValue: 50,
+            isNeedTheHardChartRefreshing: false,
+            backLog: [],
         }
     },
     created() {
@@ -89,12 +106,13 @@ export default {
         getData: function () {
             let promise = this.getChartData();
             let self = this;
+
             promise.then(function () {
-                self.visible = false;
                 let labels = self.dataSetWithJobCountInQueue.labels;
                 labels.push(self.consolidatedInfo.timeStr);
                 let data = self.dataSetWithJobCountInQueue.datasets[0].data;
                 data.push(self.consolidatedInfo.jobCountInQueue);
+                self.optionForJobCountInQueue = self.getCommonOptions();
 
                 self.dataSetWithJobCountInQueue = {
                     labels: labels,
@@ -106,16 +124,26 @@ export default {
                         }
                     ],
                 }
-                self.visible = true;
 
-                self.completed_jobs = self.consolidatedInfo.completed_jobs;
-                self.failed_jobs = self.consolidatedInfo.failed_jobs;
-                self.jobCountInQueue = self.consolidatedInfo.jobCountInQueue;
-                self.recent_failed_jobs = self.consolidatedInfo.recent_failed_jobs;
-                self.recent_jobs = self.consolidatedInfo.recent_jobs;
-                self.time = self.consolidatedInfo.time;
-                self.timeStr = self.consolidatedInfo.timeStr;
+                let dataKit = {};
+                dataKit.completed_jobs = self.consolidatedInfo.completed_jobs;
+                dataKit.failed_jobs = self.consolidatedInfo.failed_jobs;
+                dataKit.jobCountInQueue = self.consolidatedInfo.jobCountInQueue;
+                dataKit.recent_failed_jobs = self.consolidatedInfo.recent_failed_jobs;
+                dataKit.recent_jobs = self.consolidatedInfo.recent_jobs;
+                dataKit.time = self.consolidatedInfo.time;
+                dataKit.timeStr = self.consolidatedInfo.timeStr;
+                self.backLog.push(dataKit);
+                self.rotateBackLog();
+                if (self.isNeedTheHardChartRefreshing) {
+                    self.executeTheHardChartRefresh();
+                }
             })
+        },
+        rotateBackLog: function () {
+            if (this.backLog.length > 10) {
+                this.backLog.shift();
+            }
         },
         stopWatch: function () {
             this.watchingOn = false;
@@ -152,12 +180,29 @@ export default {
                         },
                         ticks: {
                             min: 0,
-                            max: 50,
+                            max: this.getMaxValue(),
                             stepSize: 10
                         }
                     }]
                 }
             }
+        },
+        executeTheHardChartRefresh: function () {
+            this.visible = false;
+            let self = this;
+            setTimeout(function () {
+                self.visible = true;
+                self.isNeedTheHardChartRefreshing = false;
+            }, 0)
+        },
+        getMaxValue: function () {
+            for (let key in this.dataSetWithJobCountInQueue.datasets[0].data) {
+                if (this.maxValue < this.dataSetWithJobCountInQueue.datasets[0].data[key]) {
+                    this.maxValue = this.dataSetWithJobCountInQueue.datasets[0].data[key];
+                    this.isNeedTheHardChartRefreshing = true;
+                }
+            }
+            return this.maxValue;
         },
         ...mapActions('redisMonitor', {
             getChartData: 'getChartData',

@@ -76,6 +76,18 @@
                                                         class="form-control custom-input">
                                                 </div>
                                             </div>
+                                            <div class="col-md-4 col-lg-4 col-xl-4 ">
+                                                <label for="limit">Row Count</label>
+                                                <div class="form-group ">
+                                                    <input
+                                                        v-model="filterParams.limit"
+                                                        type="text"
+                                                        id="limit"
+                                                        name="limit"
+                                                        placeholder="Row Count"
+                                                        class="form-control custom-input">
+                                                </div>
+                                            </div>
                                             <div class="col-md-4 col-lg-4 col-xl-3">
                                                 <div class="w-100 form-group text-center text-lg-right">
                                                     <label>&nbsp;</label>
@@ -119,6 +131,7 @@ export default {
                 attributesContain: '',
                 status: '',
                 modelName: '',
+                limit: '',
             }
         }
     },

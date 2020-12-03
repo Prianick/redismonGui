@@ -2,7 +2,7 @@
     <div>
         <div v-if="isDetailsShown" >
             <div>
-                <h4>{{ detailsTitle }}</h4>
+                <h4>{{ detailsTitle }} <a href="#" @click="collapseDetails">close</a></h4>
             </div>
             <div>
                 <pre>{{ detailsContent }}</pre>
@@ -108,6 +108,10 @@ export default {
         filter: function (params) {
             this.params = params;
             this.getJobResultsInfo(this.params);
+        },
+        collapseDetails: function () {
+            this.isDetailsShown = false;
+            return false;
         }
     },
     computed: {
